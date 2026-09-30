@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import esp32Service, { ConnectionStatus } from '../services/esp32Service';
-import { playDetectionBeep } from '../services/soundService';
+import { playObjectDetectedSound } from '../services/soundService';
 
 const MAX_HISTORY = 50;
 
@@ -12,7 +12,6 @@ export function useESP32() {
 
   const [connectionStatus, setConnectionStatus] = useState(ConnectionStatus.DISCONNECTED);
   const [wsUrl, setWsUrl] = useState(() => esp32Service.getDefaultUrl());
-
 
   // Servo Control State
   const [servoAngle, setServoAngle] = useState(90);
@@ -59,6 +58,11 @@ export function useESP32() {
   const demoDirectionRef = useRef(1); // 1 = forward (0->180), -1 = backward (180->0)
   const allReadingsRef = useRef([]);
 
+  // Edge-trigger detection refs to play sound strictly on false -> true transition
+  const wasDetectedRef = useRef(false);
+  const lastSoundTimeRef = useRef(0);
+
+
   // Save mode preference
   const updateMode = useCallback((newMode) => {
     setMode(newMode);
@@ -79,10 +83,17 @@ export function useESP32() {
     setCurrentDetection(reading);
     setServoAngle(reading.angle);
 
-    // Audio beep on confirmed detection
-    if (reading.detected && soundAlerts) {
-      playDetectionBeep();
+    // Audio alert: Play sound ONLY when entering a NEW object detection (false -> true transition)
+    const isRisingEdge = Boolean(reading.detected) && !wasDetectedRef.current;
+    const now = Date.now();
+
+    if (isRisingEdge && soundAlerts && (now - lastSoundTimeRef.current > 600)) {
+      lastSoundTimeRef.current = now;
+      playObjectDetectedSound();
     }
+
+    // Track detection state for edge detection on subsequent readings
+    wasDetectedRef.current = Boolean(reading.detected);
 
     // Add to latest 50 history
     setHistory((prev) => {
@@ -346,6 +357,8 @@ export function useESP32() {
       }
       return initial;
     });
+    wasDetectedRef.current = false;
+    lastSoundTimeRef.current = 0;
   }, []);
 
   const effectiveConnectionStatus =

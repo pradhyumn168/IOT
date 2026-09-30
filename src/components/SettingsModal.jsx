@@ -148,7 +148,7 @@ export function SettingsModal({
               )}
               <div>
                 <div className="text-xs font-semibold text-white">Audio Alert Tone</div>
-                <div className="text-[11px] text-slate-400">Play synthetic radar ping on detection</div>
+                <div className="text-[11px] text-slate-400">Plays <code className="text-cyan-400">object-detected.mp3</code> on new object detection</div>
               </div>
             </div>
             <button
@@ -165,6 +165,7 @@ export function SettingsModal({
               />
             </button>
           </div>
+
 
           {/* Quick Hardware Format Hint */}
           <div className="p-3 rounded-xl bg-cyan-950/20 border border-cyan-900/40 text-[11px] font-mono text-cyan-300/80">
